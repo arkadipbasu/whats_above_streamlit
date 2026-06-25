@@ -2,11 +2,7 @@
 ABOVE ME — Overhead Tracker
 Streamlit app: aircraft, satellites & routes for any location on Earth.
 
-Run locally:   streamlit run app.py
-Deploy free:   push to GitHub → streamlit.io/cloud → deploy
-
-Data sources: OpenSky Network, adsb.lol, adsb.fi (aircraft),
-              Celestrak TLE (satellites), Photon/Nominatim (geocoding)
+Contact - arkadipbasu.github.io
 """
 
 import streamlit as st
@@ -14,7 +10,9 @@ import requests
 import math
 import time
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 # ──────────────────────────────────────────────────────────────
 # PAGE CONFIG
@@ -240,7 +238,7 @@ st.markdown(CSS, unsafe_allow_html=True)
 st.components.v1.html(STARFIELD_HTML, height=0)
 
 # ──────────────────────────────────────────────────────────────
-# DATA: airline / route lookup
+# DATA: airline lookup
 # ──────────────────────────────────────────────────────────────
 AIRLINES = {
     'AI': 'Air India', 'AIC': 'Air India',
@@ -760,14 +758,14 @@ def run_scan(query):
     st.session_state.sat_source = sat_source
 
     st.session_state.tracked = True
-    st.session_state.last_scan = datetime.now()
+    st.session_state.last_scan = datetime.now(IST)
 
 
 if scan_clicked and location_input.strip():
     run_scan(location_input)
 
 if auto_refresh and st.session_state.tracked:
-    if st.session_state.last_scan and (datetime.now() - st.session_state.last_scan).seconds > 60:
+    if st.session_state.last_scan and (datetime.now(IST) - st.session_state.last_scan).seconds > 60:
         run_scan(location_input)
         st.rerun()
 
@@ -799,7 +797,7 @@ if st.session_state.tracked:
         r = guess_route(a.get('callsign'), a.get('country'))
         route_keys.add(f"{r['from']}-{r['to']}")
 route_count = len(route_keys)
-last_scan_str = st.session_state.last_scan.strftime('%H:%M') if st.session_state.last_scan else '—:—'
+last_scan_str = f"{st.session_state.last_scan.strftime('%H:%M')} IST (GMT+5:30)" if st.session_state.last_scan else '—:—'
 
 m1, m2, m3, m4 = st.columns(4)
 metric_defs = [
@@ -810,9 +808,10 @@ metric_defs = [
 ]
 for col, color, val, label, sub in metric_defs:
     with col:
+        val_size = '15px' if isinstance(val, str) and 'IST' in val else '26px'
         met_html = (
             f'<div class="met" style="--ac:{color}">'
-            f'<div class="met-val">{val}</div>'
+            f'<div class="met-val" style="font-size:{val_size};">{val}</div>'
             f'<div class="met-lbl">{label}</div>'
             f'<div class="met-sub">{sub}</div>'
             f'</div>'
